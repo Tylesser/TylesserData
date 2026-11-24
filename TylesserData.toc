@@ -1,0 +1,35 @@
+## Interface: 16001
+## Title: Tylesser - Data
+## Notes: WoW Forever game data shared by players with Tylesser - Collector: NPCs, quests, drops, herbs and ore, rares, vendors, trainers, travel and places, for the Tylesser addons. Loaded only when an addon asks for it.
+## Author: Tylesser
+## Version: @project-version@
+## LoadOnDemand: 1
+## X-License: MIT
+## X-Curse-Project-ID: 0
+## X-Wago-ID: TODO
+## X-Website: https://tylesser.com/tylesserdata/
+## IconTexture: Interface\AddOns\TylesserData\Media\Icon
+
+TylesserData.lua
+Data\built.lua
+Data\npcs.lua
+Data\objects.lua
+Data\quests.lua
+Data\vendors.lua
+Data\trainers.lua
+Data\loot.lua
+Data\taxi.lua
+Data\instances.lua
+Data\encounters.lua
+Data\areas.lua
+Data\discovered.lua
+Data\graveyards.lua
+Data\flights.lua
+Data\questItems.lua
+Data\vignettes.lua
+Data\pois.lua
+Data\texts.lua
+Data\speech.lua
+Data\prices.lua
+Data\recipes.lua
+Data\mail.lua

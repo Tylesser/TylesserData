@@ -1,0 +1,4 @@
+build/out/
+build/__pycache__/
+uploads/
+uploads.tar

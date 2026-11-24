@@ -1,0 +1,2 @@
+# Install IDs whose uploads are left out of the build (a bad or fake file, or a player who asked to be removed).
+# One per line; anything after # is a note.

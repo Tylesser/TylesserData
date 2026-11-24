@@ -1,0 +1,86 @@
+name: Weekly data build
+
+# Every Monday: download each install's newest Tylesser Collector file from tylesser.com, merge them
+# (build/collect.py: one file per install, build/exclude.txt left out, TYLESSER_MIN_SOURCES), write Data/*.lua,
+# and when the data changed: a CHANGELOG section, a commit, a tag and the release on CurseForge and Wago.
+# Secrets: TYLESSER_UPLOADS_TOKEN (the upload service's UPLOADS_TOKEN), CF_API_KEY; WAGO_API_TOKEN and
+# DISCORD_RELEASE_WEBHOOK are organization secrets. Variable (optional): TYLESSER_MIN_SOURCES (default 1).
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build only: no commit, tag or release"
+        type: boolean
+        default: false
+
+concurrency:
+  group: weekly-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+      TYLESSER_MIN_SOURCES: ${{ vars.TYLESSER_MIN_SOURCES || '1' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download the uploads
+        env:
+          TOKEN: ${{ secrets.TYLESSER_UPLOADS_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 -H "Authorization: Bearer $TOKEN" https://tylesser.com/api/uploads/latest.tar -o uploads.tar
+          mkdir -p uploads
+          tar -xf uploads.tar -C uploads
+          echo "installs: $(ls uploads | wc -l)"
+
+      - name: Build the data
+        run: python3 build/collect.py build --from uploads
+
+      - name: Commit, tag and changelog when the data changed
+        id: release
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          # the build date alone (Data/built.lua) is no change
+          if git diff --quiet -- Data ':!Data/built.lua'; then
+            echo "No change in the data."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          last=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v1.0.0)
+          IFS=. read -r major minor patch <<< "${last#v}"
+          next="$major.$minor.$((patch + 1))"
+          counts=$(python3 -c "import json; c=json.load(open('build/out/collected.json')); print(', '.join('%d %s' % (len(c[k]), k) for k in ('npcs','quests','objects','vendors','loot','vignettes')))")
+          python3 - "$next" "$counts" <<'PY'
+          import sys
+          version, counts = sys.argv[1], sys.argv[2]
+          path = "CHANGELOG.md"
+          text = open(path, encoding="utf-8").read()
+          entry = "## %s\n\n- Weekly data update: %s.\n\n" % (version, counts)
+          text = text.replace("# Changelog\n\n", "# Changelog\n\n" + entry, 1)
+          open(path, "w", encoding="utf-8").write(text)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Data CHANGELOG.md
+          git commit -q -m "Data update $next"
+          git tag "v$next"
+          git push -q origin HEAD "v$next"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      # (a tag pushed with GITHUB_TOKEN starts no other workflow: the release runs here)
+      - name: Package and upload
+        if: ${{ steps.release.outputs.changed == 'true' }}
+        uses: BigWigsMods/packager@v2
