@@ -2,7 +2,7 @@
 
 The game-data addon (2026-11-24, the user's request), public: data recorded by Tylesser - Collector
 (`Addons/TylesserCollector`), uploaded by players on https://tylesser.com/collect/ (tylesser-site `upload/`: stores
-each install's files on the lab server's volume, gives the newest per install as `/api/uploads/latest.tar` with a
+each install's files on the lab server's volume, gives the newest per install as `/api/uploads/latest` with a
 token), merged and written into `Data/*.lua` by `build/collect.py` (in this repo so the weekly Action can run it;
 packager-ignored). Never edit `Data/` by hand: rebuild. Forever only (Interface 16001), LoadOnDemand.
 

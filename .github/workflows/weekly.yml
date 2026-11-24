@@ -40,7 +40,7 @@ jobs:
           TOKEN: ${{ secrets.TYLESSER_UPLOADS_TOKEN }}
         run: |
           set -euo pipefail
-          curl -fsS --retry 3 -H "Authorization: Bearer $TOKEN" https://tylesser.com/api/uploads/latest.tar -o uploads.tar
+          curl -fsS --retry 3 -H "Authorization: Bearer $TOKEN" https://tylesser.com/api/uploads/latest -o uploads.tar
           mkdir -p uploads
           tar -xf uploads.tar -C uploads
           echo "installs: $(ls uploads | wc -l)"
