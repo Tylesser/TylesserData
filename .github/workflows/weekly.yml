@@ -31,7 +31,7 @@ jobs:
       GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
       TYLESSER_MIN_SOURCES: ${{ vars.TYLESSER_MIN_SOURCES || '1' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
 
@@ -83,4 +83,4 @@ jobs:
       # (a tag pushed with GITHUB_TOKEN starts no other workflow: the release runs here)
       - name: Package and upload
         if: ${{ steps.release.outputs.changed == 'true' }}
-        uses: BigWigsMods/packager@v2
+        uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2
