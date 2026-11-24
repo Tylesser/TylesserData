@@ -20,6 +20,7 @@ here adds one (file names and install IDs stay out of the output).
 import glob
 import gzip
 import json
+import math
 import os
 import re
 import sys
@@ -668,11 +669,24 @@ def merge(dbs):
 
 # The addon's data files -----------------------------------------------------------------------------------------------
 
+# Uploads come from anyone: everything written must stay valid Lua whatever a file holds. Bare keys only for plain
+# ASCII names that aren't Lua keywords (Python's isidentifier() allows "end" and "é"), no inf / nan.
+LUA_KEYWORDS = {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "goto", "if", "in", "local",
+                "nil", "not", "or", "repeat", "return", "then", "true", "until", "while"}
+LUA_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+
+
+def lua_name(key):
+    return bool(LUA_NAME.match(key)) and key not in LUA_KEYWORDS
+
+
 def lua(value, indent=""):
     if value is None:
         return "nil"
     if isinstance(value, bool):
         return "true" if value else "false"
+    if isinstance(value, float) and not math.isfinite(value):
+        return "nil"
     if isinstance(value, (int, float)):
         if isinstance(value, float) and value.is_integer():
             return str(int(value))
@@ -690,8 +704,10 @@ def lua(value, indent=""):
             if v is None or v == {} or v == []:
                 continue
             if isinstance(k, (int, float)):
-                key = "[" + str(int(k)) + "]"
-            elif isinstance(k, str) and k.isidentifier():
+                if isinstance(k, float) and not math.isfinite(k):
+                    continue
+                key = "[" + lua(k) + "]"
+            elif isinstance(k, str) and lua_name(k):
                 key = k
             else:
                 key = "[" + lua(str(k)) + "]"
