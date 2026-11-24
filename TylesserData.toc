@@ -5,8 +5,8 @@
 ## Version: @project-version@
 ## LoadOnDemand: 1
 ## X-License: MIT
-## X-Curse-Project-ID: 0
-## X-Wago-ID: TODO
+## X-Curse-Project-ID: 1829124
+## X-Wago-ID: mKOaxZNx
 ## X-Website: https://tylesser.com/tylesserdata/
 ## IconTexture: Interface\AddOns\TylesserData\Media\Icon
 
