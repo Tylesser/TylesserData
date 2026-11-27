@@ -17,7 +17,10 @@ packager-ignored). Never edit `Data/` by hand: rebuild. Forever only (Interface 
 - `TylesserData.lua`: `ns.data` (filled by the Data files) and the one global `TylesserData` (the API, see
   README.md). Spots are stored flat per map (`{ x, y, n, x, y, n }`) and handed out as `{ map, x, y, n }` lists,
   most seen first.
-- Codex doesn't read it yet (quest pins, map extras, writ NPCs, drop info in tooltips): the user's call.
+- Readers (2026-11-27, the user's "do 2-7"): Commerce Authority and Codex's Commerce module load it on demand
+  (`Collected()` in their Core.lua) for writ NPCs missing from their table (`Quest(writQuest).ends.npc` + `NPC().spots[1]`),
+  crate Favor (`QuestsRequiring(sealedCrate)` + `currencies[3402]`) and Waylaid Herbs' bill (`Text("item", 275642)`).
+  Quest pins, map extras and drop info in tooltips: still the user's call.
 - No data-source names here: the data comes from the user's own collecting (notes in `tools/collector/README.md`).
 - Tests: `python -I tools/collector/test_collect.py` (merge + build into a temporary copy, then
   `tools/harness/data_test.lua` / `data_real_test.lua` over the API; uploads --from a folder, one file per install,

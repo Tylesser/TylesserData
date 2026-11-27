@@ -245,6 +245,22 @@ function API.QuestsRewarding(itemID)
   return list
 end
 
+-- Quests that ask for an item at the end (handed in): { { quest, title, count, currencies = { [currencyID] = amount } } }
+-- (currencies: what the quest rewards, base amounts before talents; Commerce Authority reads the Merchant's Favor a
+-- Sealed crate gives from it, 2026-11-27).
+function API.QuestsRequiring(itemID)
+  local list = {}
+  for questID, quest in pairs(Data("quests")) do
+    for _, need in ipairs(quest.required or {}) do
+      if need.item == itemID then
+        list[#list + 1] = { quest = questID, title = quest.title, count = need.count, currencies = quest.currencies }
+      end
+    end
+  end
+  table.sort(list, function(a, b) return a.quest < b.quest end)
+  return list
+end
+
 -- Everywhere an item comes from: { vendors = VendorsSelling, drops = Drops, quests = QuestsRewarding }.
 function API.ItemSources(itemID)
   return { vendors = API.VendorsSelling(itemID), drops = API.Drops(itemID), quests = API.QuestsRewarding(itemID) }

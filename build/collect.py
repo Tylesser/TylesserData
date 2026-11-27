@@ -238,6 +238,47 @@ class Votes:
 
 # Merging ---------------------------------------------------------------------------------------------------------------
 
+# Uploads from clients in other languages (2026-11-27 audit): names, titles and texts come in that language, and
+# a German file alone would make an NPC's name German for everyone. From such a file only what has no language is
+# kept: IDs, spots, levels, counts, prices, loot, flights. (The client's locale is in the file since 1.0.0; a file
+# without one counts as English.)
+ENGLISH_LOCALES = {"enUS", "enGB"}
+TEXT_KEYS = {"name", "title", "text", "description", "progressText", "completionText", "tag", "line", "zone",
+             "greeting", "inn", "subject", "sender", "tooltip", "requires", "rank", "profession", "pages",
+             "gossip", "options", "says", "rep", "family"}
+NAME_KEYED = ("discovered", "speech", "texts", "mail", "areas")
+
+
+def file_locale(db):
+    client = db.get("client")
+    locale = client.get("locale") if isinstance(client, dict) else None
+    return locale if isinstance(locale, str) and locale else None
+
+
+def without_language(db):
+    """The file as it is when it is English, else a copy without anything in the client's language."""
+    locale = file_locale(db)
+    if locale is None or locale in ENGLISH_LOCALES:
+        return db
+
+    def strip(value, depth=0):
+        if isinstance(value, dict):
+            return {k: strip(v, depth + 1) for k, v in value.items() if not (isinstance(k, str) and k in TEXT_KEYS)}
+        if isinstance(value, list):
+            return [strip(v, depth + 1) for v in value]
+        return value
+
+    out = {}
+    for key, value in db.items():
+        if key in NAME_KEYED:
+            continue
+        if key == "npcs" and isinstance(value, dict):
+            # the creature type comes in the client's language too ("Humanoide")
+            value = {k: {f: v for f, v in n.items() if f != "type"} if isinstance(n, dict) else n for k, n in value.items()}
+        out[key] = strip(value) if key in ("npcs", "objects", "quests", "vendors", "trainers", "taxi",
+                                            "instances", "encounters", "vignettes", "pois", "recipes") else value
+    return out
+
 def respawn_estimate(sightings):
     """A rare's respawn, roughly: the shortest wait from a sighting dead to the next sighting alive (seconds)."""
     best = None
@@ -398,6 +439,10 @@ def merge(dbs):
                 lst = [i for i in as_list(quest.get(field)) if isinstance(i, dict) and i.get("item")]
                 if len(lst) >= len(out.get(field, [])) and lst:
                     out[field] = lst
+            # currency rewards (Merchant's Favor for a crate, 2026-11-27): [currencyID] = base amount
+            for cur in as_list(quest.get("currencies")):
+                if isinstance(cur, dict) and key_int(cur.get("currency")) and isinstance(cur.get("count"), (int, float)):
+                    out.setdefault("currencies", {})[key_int(cur["currency"])] = int(cur["count"])
             for faction, amount in items(quest.get("rep")):
                 out.setdefault("rep", {})[faction] = amount
             for field in ("objectiveNpcs", "objectiveSources"):
@@ -775,7 +820,7 @@ def build(data):
     written = [
         write_table("npcs", npcs, "[npcID] = { name, title, minLevel, maxLevel, boss, class, type, faction, reaction, gossip, taxiNode, spots = { [uiMapID] = { x, y, n, ... } } }"),
         write_table("objects", objects, "[objectID] = { name, spots = { [uiMapID] = { x, y, n, ... } } }"),
-        write_table("quests", quests, "[questID] = { title, text, level, group, frequency, xp, money, objectives, starts / ends = { npc = {ids}, object = {ids}, item = {ids} }, races, classes, factions, accepted = spots, objectiveSpots = { [index] = spots } }"),
+        write_table("quests", quests, "[questID] = { title, text, level, group, frequency, xp, money, objectives, starts / ends = { npc = {ids}, object = {ids}, item = {ids} }, required, currencies = { [currencyID] = amount }, races, classes, factions, accepted = spots, objectiveSpots = { [index] = spots } }"),
         write_table("vendors", vendors, "[npcID] = { seen, items = { [itemID] = { price, stack, limit, extended, costs = { { amount, item, currency } } } } }"),
         write_table("trainers", trainers, "[npcID] = { type, services = { [spellID or \"name:rank\"] = { name, rank, level, cost, spell, skill, skillRank } } }"),
         write_table("loot", loot, "[\"npc:<id>\" | \"object:<id>\" | \"fishing:<uiMapID>\"] = { opened, items = { [itemID] = { times, quantity } } }"),
@@ -869,7 +914,7 @@ def main(argv):
         sys.exit("No collector files yet: enable Tylesser - Collector, play, then /reload. Friends' files go in "
                  + INBOX)
     chosen = newest_per_install(paths)
-    data = merge([db for _, db in chosen])
+    data = merge([without_language(db) for _, db in chosen])
     summary(data, len(chosen))
     if command in ("merge", "build"):
         os.makedirs(os.path.dirname(OUT_JSON), exist_ok=True)

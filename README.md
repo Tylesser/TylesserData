@@ -27,6 +27,7 @@ D.Trainer(928), D.TrainersTeaching(spellID)
 D.Loot("npc", 299), D.Drops(itemID)   -- chances 0-1
 D.FlightPoint(2), D.FlightPoints(mapID), D.FlightTime(fromNode, toNode)   -- seconds
 D.QuestsRewarding(itemID), D.ItemSources(itemID)   -- vendors, drops, quest rewards
+D.QuestsRequiring(itemID)                         -- quests that ask for it, with their currency rewards
 D.QuestsAfter(questID)     -- the quests offered right after it (chains)
 D.Services("mail", mapID)  -- also bank, auction, stable, guildbank, inn, repair, spirithealer
 D.Instance(36), D.Instances(), D.Encounter(1144)
